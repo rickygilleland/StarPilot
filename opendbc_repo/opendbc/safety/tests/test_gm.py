@@ -207,6 +207,22 @@ class TestGmAscmEVSafety(TestGmAscmSafety, TestGmEVSafetyBase):
     return self.packer.make_can_msg_panda("EBCMBrakePedalPosition", 0, values)
 
 
+class TestGmEscaladeAscmSafety(TestGmAscmSafety):
+  """
+  Cadillac Escalade (OBD-II/ASCM harness, non-ASCM_INT). Reuses the Bolt 2017 param bit
+  (FLAG_GM_BOLT_2017 / 2048), but since hardware != GM_CAM here, the safety mode selects
+  the Escalade steering limits (400) rather than the Bolt's (450).
+  """
+  EXTRA_SAFETY_PARAM = GMSafetyFlags.FLAG_GM_BOLT_2017
+
+  MAX_RATE_UP = 13
+  MAX_RATE_DOWN = 20
+  MAX_TORQUE_LOOKUP = [0], [300]
+  MAX_RT_DELTA = 166
+  DRIVER_TORQUE_ALLOWANCE = 87
+  DRIVER_TORQUE_FACTOR = 4
+
+
 class TestGmCameraSafetyBase(TestGmSafetyBase):
   def _user_brake_msg(self, brake):
     values = {"BrakePressed": brake}
@@ -239,6 +255,37 @@ class TestGmCameraSafety(TestGmCameraSafetyBase):
     for enabled in (True, False):
       self._rx(self._pcm_status_msg(enabled))
       self.assertEqual(enabled, self._tx(self._button_msg(Buttons.CANCEL)))
+
+
+class TestGmBolt2017Safety(TestGmCameraSafety):
+  """
+  Chevrolet Bolt EV 2017 (HW_CAM set, HW_ASCM_INT not set). This is the original
+  interpretation of FLAG_GM_BOLT_2017 (2048): elevated 450 steering limits.
+  """
+  EXTRA_SAFETY_PARAM = GMSafetyFlags.FLAG_GM_BOLT_2017
+
+  MAX_RATE_UP = 15
+  MAX_RATE_DOWN = 34
+  MAX_TORQUE_LOOKUP = [0], [450]
+  MAX_RT_DELTA = 345
+  DRIVER_TORQUE_ALLOWANCE = 78
+  DRIVER_TORQUE_FACTOR = 6
+
+
+class TestGmEscaladeAscmIntSafety(TestGmCameraSafety):
+  """
+  Cadillac Escalade ASCM Harness (HW_CAM set, HW_ASCM_INT also set). Reuses the same
+  FLAG_GM_BOLT_2017 param bit as the Bolt, but HW_ASCM_INT being set selects the
+  Escalade steering limits (400) instead of the Bolt's (450).
+  """
+  EXTRA_SAFETY_PARAM = GMSafetyFlags.HW_ASCM_INT | GMSafetyFlags.FLAG_GM_BOLT_2017
+
+  MAX_RATE_UP = 13
+  MAX_RATE_DOWN = 20
+  MAX_TORQUE_LOOKUP = [0], [300]
+  MAX_RT_DELTA = 166
+  DRIVER_TORQUE_ALLOWANCE = 87
+  DRIVER_TORQUE_FACTOR = 4
 
 
 class TestGmSdgmSafety(TestGmSafetyBase):

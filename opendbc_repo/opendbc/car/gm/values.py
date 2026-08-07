@@ -54,6 +54,17 @@ class CarControllerParams:
       self.STEER_DRIVER_MULTIPLIER = 6
       self.STEER_DRIVER_FACTOR = 100
 
+    if CP.carFingerprint in (CAR.CADILLAC_ESCALADE, CAR.CADILLAC_ESCALADE_ASCM):
+      # 300 (3.0 Nm) is the MEASURED PSCM execution limit on this car: a
+      # road test with a 400 cap showed delivered torque clamping at exactly
+      # 3.0 Nm and an LKAS fault latching when commands exceeded it. Keep the
+      # faster ramp rates; must stay consistent with
+      # GM_ESCALADE_STEERING_LIMITS in opendbc/safety/modes/gm.h
+      self.STEER_MAX = 300
+      self.STEER_DELTA_UP = 13
+      self.STEER_DELTA_DOWN = 20
+      self.STEER_DRIVER_ALLOWANCE = 87
+
     # Gas/brake lookups
     self.ZERO_GAS = 6150  # Coasting
     self.MAX_BRAKE = 400  # ~ -4.0 m/s^2 with regen
@@ -170,6 +181,9 @@ class GMSafetyFlags(IntFlag):
   HW_ASCM_INT = 256
   FLAG_GM_FORCE_BRAKE_C9 = 512
   HW_SDGM = 1024
+  # Reused for two steering-limit interpretations, disambiguated in the safety mode by
+  # hardware context: HW_CAM set and HW_ASCM_INT not set -> Bolt 2017 (450); HW_ASCM_INT
+  # set, or hardware != CAM -> Cadillac Escalade / Escalade ASCM (400).
   FLAG_GM_BOLT_2017 = 2048
   FLAG_GM_BOLT_2022_PEDAL = 4096
   FLAG_GM_REMOTE_START_BOOTS_COMMA = 8192

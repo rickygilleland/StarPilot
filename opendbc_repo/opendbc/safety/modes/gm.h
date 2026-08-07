@@ -38,6 +38,19 @@ static const TorqueSteeringLimits GM_BOLT_2017_STEERING_LIMITS = {
   .type = TorqueDriverLimited,
 };
 
+// Reuses the same param bit as GM_BOLT_2017_STEERING_LIMITS (GM_PARAM_BOLT_2017 / 2048).
+// Selected instead of the Bolt limits when the Escalade hardware context is detected:
+// GM_PARAM_HW_ASCM_INT set, or hardware != GM_CAM (see gm_init()).
+static const TorqueSteeringLimits GM_ESCALADE_STEERING_LIMITS = {
+  .max_torque = 300,  // measured PSCM execution limit; faults above 3.0 Nm
+  .max_rate_up = 13,
+  .max_rate_down = 20,
+  .driver_torque_allowance = 87,
+  .driver_torque_multiplier = 4,
+  .max_rt_delta = 166,
+  .type = TorqueDriverLimited,
+};
+
 enum {
   GM_BTN_UNPRESS = 1,
   GM_BTN_RESUME = 2,
@@ -748,12 +761,23 @@ static safety_config gm_init(uint16_t param) {
   gm_pcm_cruise = (gm_hw == GM_CAM || gm_sdgm) && !gm_cam_long && !gm_force_ascm && !gm_pedal_long;
   const bool gm_ascm_int_stock_cam = gm_ascm_int && (gm_hw == GM_CAM) && gm_pcm_cruise && !gm_cam_long && !gm_pedal_long && !gm_cc_long;
   const bool gm_ascm_int_no_accel_pos = gm_ascm_int && (gm_hw == GM_CAM) && gm_force_brake_c9;
-  // FLAG_GM_BOLT_2022_PEDAL is shared with Malibu Hybrid pedal-long. Requiring
+// FLAG_GM_BOLT_2022_PEDAL is shared with Malibu Hybrid pedal-long. Requiring
   // the paddle scheduler bit narrows this whitelist to the Gen2 Bolt pedal-long
   // experiment, which is the only path that should probe chassis friction brake
   // while stock ACC remains canceled.
   const bool gm_bolt_2022_pedal_friction = gm_bolt_2022_pedal && gm_panda_paddle_sched && !gm_has_acc;
-  gm_steer_limits = GET_FLAG(param, GM_PARAM_BOLT_2017) ? &GM_BOLT_2017_STEERING_LIMITS : &GM_STEERING_LIMITS;
+
+  if (GET_FLAG(param, GM_PARAM_BOLT_2017)) {
+    // Param bit 2048 is shared by two steering tunes; disambiguate by hardware context.
+    // Bolt 2017: HW_CAM set and ASCM_INT not set. Escalade: ASCM_INT set, or hardware != CAM.
+    if ((gm_hw == GM_CAM) && !gm_ascm_int) {
+      gm_steer_limits = &GM_BOLT_2017_STEERING_LIMITS;
+    } else {
+      gm_steer_limits = &GM_ESCALADE_STEERING_LIMITS;
+    }
+  } else {
+    gm_steer_limits = &GM_STEERING_LIMITS;
+  }
 
   if ((gm_hw == GM_ASCM && !gm_sdgm) || gm_ascm_int || gm_force_ascm) {
     gm_long_limits = &GM_ASCM_LONG_LIMITS;
