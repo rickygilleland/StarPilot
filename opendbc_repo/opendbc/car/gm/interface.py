@@ -441,12 +441,14 @@ class CarInterface(CarInterfaceBase):
 
     elif candidate == CAR.CADILLAC_ESCALADE:
       ret.minEnableSpeed = -1.  # engage speed is decided by pcm
+      ret.steerActuatorDelay = 0.34  # liveDelay-converged measurement (0.342s, 16+ valid blocks)
       CarInterfaceBase.configure_torque_tune(candidate, ret.lateralTuning)
       # Reuses the Bolt 2017 param bit for an elevated steering torque limit; the safety
       # mode disambiguates by hardware context (ASCM_INT set, or hardware != CAM -> Escalade).
       ret.safetyConfigs[0].safetyParam |= GMSafetyFlags.FLAG_GM_BOLT_2017.value
 
     elif candidate == CAR.CADILLAC_ESCALADE_ASCM:
+      ret.steerActuatorDelay = 0.34  # same measured delay as CADILLAC_ESCALADE
       CarInterfaceBase.configure_torque_tune(CAR.CADILLAC_ESCALADE, ret.lateralTuning)
       # Same reused param bit as CADILLAC_ESCALADE; this variant also sets HW_ASCM_INT above,
       # which the safety mode uses to select the Escalade steering limits over the Bolt's.
