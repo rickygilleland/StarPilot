@@ -17,7 +17,7 @@ from openpilot.selfdrive.controls.lib.drive_helpers import CONTROL_N
 from openpilot.selfdrive.controls.lib.latcontrol import LatControl
 from openpilot.selfdrive.modeld.constants import ModelConstants
 
-from openpilot.starpilot.common.starpilot_variables import NNFF_MODELS_PATH, get_nnff_model_files, get_nnff_substitutes
+from openpilot.starpilot.common.starpilot_variables import NNFF_MODEL_ALIASES, NNFF_MODELS_PATH, get_nnff_model_files, get_nnff_substitutes
 
 # At higher speeds (25+mph) we can assume:
 # Lateral acceleration achieved by a specific car correlates to
@@ -133,7 +133,9 @@ def get_nn_model_path(car, eps_firmware) -> str | None:
     return None
 
   substitutes = get_nnff_substitutes()
-  sub_candidate = substitutes.get(car, car)
+  # NNFF_MODEL_ALIASES takes priority: it covers cars that can't be aliased via
+  # torque_data/substitute.toml (see NNFF_MODEL_ALIASES docstring in starpilot_variables.py).
+  sub_candidate = NNFF_MODEL_ALIASES.get(car, substitutes.get(car, car))
 
   candidates_to_check = [car]
   if car != sub_candidate:

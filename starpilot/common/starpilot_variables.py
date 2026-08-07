@@ -284,6 +284,16 @@ EXCLUDED_KEYS = {
   "UptimeOffroad"
 }
 
+# NNFF-only model aliases, keyed by CarParams.carFingerprint. Used for cars whose steering
+# behavior is close enough to another platform's trained NNFF model to reuse it, but which
+# can't be aliased via opendbc/car/torque_data/substitute.toml because they (or an ASCM
+# variant they'd otherwise chain to) already carry their own torque_data/override.toml entry,
+# which makes get_torque_params() raise "defined twice" if a substitute is also added.
+NNFF_MODEL_ALIASES = {
+  # (empty -- the Escalade now ships its own trained model in nnff_models/.
+  # The alias mechanism stays for future cars in the same override.toml bind.)
+}
+
 # Shared params handles for modules that import these from starpilot_variables.
 params = Params(return_defaults=True)
 params_memory = Params(memory=True)
@@ -305,7 +315,9 @@ def nnff_supported(car_fingerprint):
   substitutes = get_nnff_substitutes()
 
   fingerprints_to_check = [car_fingerprint]
-  if car_fingerprint in substitutes:
+  if car_fingerprint in NNFF_MODEL_ALIASES:
+    fingerprints_to_check.append(NNFF_MODEL_ALIASES[car_fingerprint])
+  elif car_fingerprint in substitutes:
     fingerprints_to_check.append(substitutes[car_fingerprint])
 
   for fingerprint in fingerprints_to_check:
